@@ -1,5 +1,5 @@
 /*  
- *  ------ Comunicação Cayenne -------- 
+ *  ------ Comunicação LoRa para integração com Cayenne -------- 
  *  
  *  Explanation: Esse programa é desenvolvido para enviar
  *  pacotes com confirmação do Device Libelium para a integração 
