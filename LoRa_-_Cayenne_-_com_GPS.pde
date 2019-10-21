@@ -55,7 +55,6 @@ uint8_t PORT = 20;
 uint8_t error;
 int Ctotal = 0;
 int Cerro = 0;
-float Cporcento=0;
 
 void setup() 
 {
