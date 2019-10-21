@@ -7,7 +7,6 @@
  *  sendo um com contagem de pacotes criados para tentar enviar 
  *  e outro com a quantidade de pacotes que falharam no envio.
  *  
- *  
  *  Obs: Programa adaptado do programa de configuração da Libelium 
  *  
  *  
@@ -33,7 +32,6 @@
 // define a variavel de estatos do GPS
 bool status;
 
-GPS gps();
 
 // Define socket que será usado
 //////////////////////////////////////////////
@@ -374,7 +372,6 @@ void loop()
 {
     GPS.ON(); //Inicializa o GPS
     
-    
     ///////////////////////////////////////////////////
     // Espera GPS Comunicar
     ///////////////////////////////////////////////////
@@ -486,7 +483,6 @@ void loop()
       USB.print(F("Send confirmed packet error = ")); 
       USB.println(error, DEC);
       Cerro++; // Soma contador de erro caso haja erro
-      goto volta; // Retorna ao começo do programa sem acionar alarme
       } 
       }
       else 
@@ -512,14 +508,12 @@ void loop()
       USB.print(F("5. Switch OFF error = ")); 
       USB.println(error, DEC);
       }
-
-      delay(300);
-
-   }
-   else
-   {
-     USB.println(F("\n----------------------"));
-     USB.println(F("GPS TIMEOUT. NOT connected"));
-     USB.println(F("----------------------"));
-   }
+     delay(300);  
+    }
+    else
+     {
+       USB.println(F("\n----------------------"));
+       USB.println(F("GPS TIMEOUT. NOT connected"));
+       USB.println(F("----------------------"));
+     }
 }
