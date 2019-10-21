@@ -487,7 +487,7 @@ void loop()
       }
       else 
       {
-      USB.print(F("2. Join network error = ")); 
+      USB.print(F(" Join network error = ")); 
       USB.println(error, DEC);
       }
       
@@ -501,11 +501,11 @@ void loop()
       // Check status
       if( error == 0 ) 
       {
-      USB.println(F("5. Switch OFF OK")); 
+      USB.println(F(" Switch OFF OK")); 
       }
       else 
       {
-      USB.print(F("5. Switch OFF error = ")); 
+      USB.print(F(" Switch OFF error = ")); 
       USB.println(error, DEC);
       }
      delay(300);  
