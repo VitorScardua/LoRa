@@ -3,8 +3,9 @@
  *  
  *  Explanation: Esse programa é desenvolvido para enviar
  *  pacotes com confirmação do Device Libelium para a integração 
- *  Cayenne de forma que deva enviar o sinal de GPS e 2 contadores,
- *  sendo um com contagem de pacotes criados para tentar enviar 
+ *  Cayenne de forma que deva enviar Velocidade e direção do vento,
+ *  pressão, humidade, temperatura, luminosidade, dados do pluviometro
+ *  e 2 contadores, sendo um com contagem de pacotes criados para tentar enviar 
  *  e outro com a quantidade de pacotes que falharam no envio.
  *  
  *  Obs: Programa adaptado do programa de configuração da Libelium 
