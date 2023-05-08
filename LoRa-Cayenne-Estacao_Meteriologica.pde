@@ -1,3 +1,4 @@
+
 /*  
  *  ------ Comunicação LoRa para integração com Cayenne -------- 
  *  
@@ -27,6 +28,7 @@
 #define LPP_BAROMETRIC_PRESSURE 115// 2 bytes 0.1 hPa Unsigned
 #define LPP_ANALOG_INPUT 2// 2 bytes, 0.01 signed
 #define LPP_CONTADOR 101 // 2 bytes, 0.5% unsigned
+#define LPP_ANALOG_INPUT  2       // 2 bytes, 0.01 signed
 
 // Data ID + Data Type + Data Size
 #define LPP_GPS_SIZE 11
@@ -36,6 +38,7 @@
 #define LPP_BAROMETRIC_PRESSURE_SIZE 4
 #define LPP_ANALOG_INPUT_SIZE 4
 #define LPP_CONTADOR_SIZE 11
+#define LPP_ANALOG_INPUT_SIZE 4
 
 // Define o tempo de espera para tentar conectar o GPS
 // definido em segundos (60sec = 1minutes)
@@ -49,24 +52,36 @@ bool status;
 uint8_t socket = SOCKET0;
 //////////////////////////////////////////////
 
-// Define parametros do Device e Back-End
+//// Define parametros do Device e Back-End
+//////////////////////////////////////////////////////////////
+//char DEVICE_EUI[]  = "659437450ca07f40";
+//char DEVICE_ADDR[] = "00e8d32b";
+//char NWK_SESSION_KEY[] = "7d92b4d96ec43fd1011dd6e2f03a962f";
+//char APP_SESSION_KEY[] = "8307e9a0f51d606ef62b79a0f51778a5";
+//////////////////////////////////////////////////////////////
+
+// Define parametros do Device e Back-End PARAMETROS DE TESTE
 ////////////////////////////////////////////////////////////
-char DEVICE_EUI[]  = "0004A30B0022C7A4";
-char DEVICE_ADDR[] = "2601122C";
-char NWK_SESSION_KEY[] = "81FE2245798C804152110AA19655D447";
-char APP_SESSION_KEY[] = "35494C61F461E2720A92278832079652";
+char DEVICE_EUI[]  = "62504ab3f559d469";//
+char DEVICE_ADDR[] = "008ec8c1";//
+char NWK_SESSION_KEY[] = "240df2e7268a9e47b3e32d96d3059d02";//
+char APP_SESSION_KEY[] = "7886fbb930f50dbaaf4809cecd80e47e";//
 ////////////////////////////////////////////////////////////
 
 
 // Define a porta usada no Back-End: de 1 até 223
-uint8_t PORT = 2;
+uint8_t PORT = 13;
 
 // Variáveis
 uint8_t error;
 weatherStationClass weather;
-int pendingPulses;
-int Ctotal = 0;
-int Cerro = 0;
+uint8_t pendingPulses;
+uint16_t Ctotal = 0;
+uint16_t Cerro = 0;
+float bat = 0;
+float solar = 0;
+radiationClass radSensor;
+float radiation,valor;
 
 void setup() 
 {
@@ -114,7 +129,7 @@ void setup()
   if( error == 0 ) 
   {
     USB.println(F("2. Data rate set OK")); 
-    LoRaWAN.setADR("off");   // Desativa o Data Rate Adaptativo  
+    //LoRaWAN.setADR("off");   // Desativa o Data Rate Adaptativo  
   }
   else 
   {
@@ -231,7 +246,7 @@ error = LoRaWAN.setPower(5); // Define valor da potência de 5 a 10
     // Verifica status de cada canal
     if( error == 0 )
     {
-      USB.println(F("7. Channel status set OK")); 
+      //USB.println(F("7. Channel status set OK")); 
     }
     else
     {
@@ -277,64 +292,66 @@ error = LoRaWAN.setPower(5); // Define valor da potência de 5 a 10
 
 
 class CayenneLPP {
-public:
-CayenneLPP(uint8_t size);
-~CayenneLPP();
-
-void reset(void);
-uint8_t getSize(void);
-uint8_t* getBuffer(void);
-uint8_t copy(uint8_t* buffer);
-
-uint8_t addLuminosity(uint8_t channel, uint16_t lux); // Define a Função da luminosidade
-uint8_t addTemperature(uint8_t channel, float celsius); // Define a Função da temperatura
-uint8_t addRelativeHumidity(uint8_t channel, float rh); // Define a Função da humidade
-uint8_t addBarometricPressure(uint8_t channel, float hpa); // Define a Função do barometro
-uint8_t addWeatherStation(uint8_t channel, float value); // Define a Função de dados do vento e pluviometro
-uint8_t addContador(uint8_t channel, int Contador); // Define a Função do contador
-
-
-private:
-uint8_t *buffer;
-uint8_t maxsize;
-uint8_t cursor;
-
-};
-
+  public:
+  CayenneLPP(uint8_t size);
+  ~CayenneLPP();
+  
+  void reset(void);
+  uint8_t getSize(void);
+  uint8_t* getBuffer(void);
+  uint8_t copy(uint8_t* buffer);
+  
+  uint8_t addLuminosity(uint8_t channel, uint16_t lux); // Define a Função da luminosidade
+  uint8_t addTemperature(uint8_t channel, float celsius); // Define a Função da temperatura
+  uint8_t addRelativeHumidity(uint8_t channel, float rh); // Define a Função da humidade
+  uint8_t addBarometricPressure(uint8_t channel, float hpa); // Define a Função do barometro
+  uint8_t addWeatherStation(uint8_t channel, float value); // Define a Função de dados do vento e pluviometro
+  uint8_t addContador(uint8_t channel, int Contador); // Define a Função do contador
+  uint8_t addBateria(uint8_t channel, float value); //Valor da bateria
+  uint8_t addRadiacao(uint8_t channel, float valor); // Define a Função de dados de radiação (dividido por 10 o valor)
+  
+  
+  private:
+  uint8_t *buffer;
+  uint8_t maxsize;
+  uint8_t cursor;
+  
+  };
+  
 CayenneLPP::CayenneLPP(uint8_t size) : maxsize(size)
 //Initialize the payload buffer with the given maximum size.
 {
-buffer = (uint8_t*) malloc(size);
-cursor = 0;
+  buffer = (uint8_t*) malloc(size);
+  cursor = 0;
 }
 
 CayenneLPP::~CayenneLPP(void)
 {
-free(buffer);
+  free(buffer);
 }
 
 void CayenneLPP::reset(void)
 //Reset the payload, to call before building a frame payload
 {
-cursor = 0;
+  cursor = 0;
 }
 
 uint8_t CayenneLPP::getSize(void)
 //Returns the current size of the payload
 {
-return cursor;
+  return cursor;
 }
-
+  
 uint8_t* CayenneLPP::getBuffer(void)
-//Return the payload buffer
+  //Return the payload buffer
 {
-return buffer;
+  return buffer;
 }
 
 uint8_t CayenneLPP::copy(uint8_t* dst)
 {
-memcpy(dst, buffer, cursor);
-return cursor;
+  memcpy(dst, buffer, cursor);
+  return cursor;
 }
 
 uint8_t CayenneLPP::addLuminosity(uint8_t channel, uint16_t lux)//Função para criar payload para os dados do sensor de luminosidade
@@ -424,7 +441,38 @@ uint8_t CayenneLPP::addContador(uint8_t channel, int Contador)//Função para cr
   return cursor;
 }
 
-CayenneLPP Payload(200);
+uint8_t CayenneLPP::addBateria(uint8_t channel, float value)
+{
+    if ((cursor + LPP_ANALOG_INPUT_SIZE) > maxsize) {
+        return 0;
+    }
+
+    int32_t val = value*100;
+    buffer[cursor++] = channel; 
+    buffer[cursor++] = LPP_ANALOG_INPUT; 
+    buffer[cursor++] = val >> 8; 
+    buffer[cursor++] = val; 
+
+    return cursor;
+}
+
+uint8_t CayenneLPP::addRadiacao(uint8_t channel, float valor) //Função para criar payload para os dados do sensor de radiação(deve ser multiplicado por 100 o valor que aparece no cayenne)
+{
+    if ((cursor + LPP_BAROMETRIC_PRESSURE_SIZE) > maxsize) {
+        return 0;
+    }
+
+    int32_t val = valor*10;
+    buffer[cursor++] = channel; //Guarda o numero do canal destinado as dados de vento e pluviometro no payload
+    buffer[cursor++] = LPP_BAROMETRIC_PRESSURE; //Guarda o código dos dados (código definido pelo Cayenne para que o mesmo perceba que os dados seguintes se referem aos dados de vento e pluviometro)
+    //***OBS: Neste caso a função está usando o código da estção meteriologica do cayenne pois é o que melhor representa os dados de vento e pluviometro, visto que o Cayenne não possui código para os mesmos) 
+    buffer[cursor++] = val >> 8;
+    buffer[cursor++] = val; 
+
+    return cursor;
+}
+
+CayenneLPP Payload(1000);
 
 void loop() 
 {
@@ -436,11 +484,24 @@ void loop()
     int size = 0;
     Payload.reset(); //Reseta Payload
 
+    Ctotal ++;
+
     //////////////////////////////////////////////
     // Montando o Payload
     //////////////////////////////////////////////
+
+//    USB.print("Luz: ");
+//    USB.println(Agriculture.getLuxes(OUTDOOR));
+//    USB.print("Temp: ");
+//    USB.println(Agriculture.getTemperature());
+//    USB.print("Humi: ");
+//    USB.println(Agriculture.getHumidity());
+//    USB.print("Press: ");
+//    USB.println(Agriculture.getPressure());
+//    USB.print("Vel Vent: ");
+//    USB.println(weather.readAnemometer());
     
-    size = Payload.addLuminosity(0, Agriculture.getLuxes(INDOOR)); //Cria Payload para luximetro com Canal 0; INDOOR ou OUTDOOR, dependendo da funçaõ desejada
+    size = Payload.addLuminosity(0, Agriculture.getLuxes(OUTDOOR)); //Cria Payload para luximetro com Canal 0; INDOOR ou OUTDOOR, dependendo da funçaõ desejada
 
 
     Payload.addTemperature(1, Agriculture.getTemperature()); //Cria Payload para temperatura com Canal 1
@@ -451,38 +512,55 @@ void loop()
     switch(weather.readVaneDirection()) //Cria Payload para direção do vento com Canal 5
     {
       case  SENS_AGR_VANE_N   :  Payload.addWeatherStation(5,1); // Caso seja Norte(N) manda valor 1
+                                 USB.println("Norte");
                                  break;
       case  SENS_AGR_VANE_NNE :  Payload.addWeatherStation(5,2); // Caso seja Nor-Nordeste(NNE) valor 2
+                                 USB.println("Nor-Nordeste"); 
                                  break;  
       case  SENS_AGR_VANE_NE  :  Payload.addWeatherStation(5,3); // Caso seja Nordeste(NE) valor 3
+                                 USB.println("Nordeste");
                                  break;    
       case  SENS_AGR_VANE_ENE :  Payload.addWeatherStation(5,4); // Caso seja lês-Nordeste(ENE) valor 4
+                                 USB.println("ENE");
                                  break;      
       case  SENS_AGR_VANE_E   :  Payload.addWeatherStation(5,5); // Caso seja Leste(E) valor 5
+                                 USB.println("E");
                                  break;    
       case  SENS_AGR_VANE_ESE :  Payload.addWeatherStation(5,6); // Caso seja Les-Sudeste(ESE) valor 6
+                                 USB.println("ESE");
                                  break;  
       case  SENS_AGR_VANE_SE  :  Payload.addWeatherStation(5,7); // Caso seja Sudeste(SE) valor 7
+                                 USB.println("SE");
                                  break;    
       case  SENS_AGR_VANE_SSE :  Payload.addWeatherStation(5,8); // Caso seja Su-Sudeste(SSE) valor 8
+                                 USB.println("SSE");
                                  break;   
       case  SENS_AGR_VANE_S   :  Payload.addWeatherStation(5,9); // Caso seja Sul(S) valor 9
+                                 USB.println("S");
                                  break; 
       case  SENS_AGR_VANE_SSW :  Payload.addWeatherStation(5,10); // Caso seja Su-Sudoeste(SSW) valor 10
+                                 USB.println("SSW");
                                  break; 
       case  SENS_AGR_VANE_SW  :  Payload.addWeatherStation(5,11); // Caso seja Sudoeste(SW) valor 11
+                                 USB.println("SW");
                                  break;  
       case  SENS_AGR_VANE_WSW :  Payload.addWeatherStation(5,12); // Caso seja Oes-Sudoeste(WSW) valor 12
+                                 USB.println("WSW");
                                  break; 
       case  SENS_AGR_VANE_W   :  Payload.addWeatherStation(5,13); // Caso seja Oeste(W) valor 13
+                                 USB.println("W");
                                  break;   
       case  SENS_AGR_VANE_WNW :  Payload.addWeatherStation(5,14); // Caso seja Oes-Noreoeste(WNW) valor 14
+                                 USB.println("WNW");
                                  break; 
       case  SENS_AGR_VANE_NW  :  Payload.addWeatherStation(5,15); // Caso seja Noroeste(NW) valor 15
+                                 USB.println("NW");
                                  break;
       case  SENS_AGR_VANE_NNW :  Payload.addWeatherStation(5,16); // Caso seja Nor-Noroeste(NNW) valor 16
+                                 USB.println("NNW");
                                  break;  
       default                 :  Payload.addWeatherStation(5,0); // Caso nem um dos casos jogar valor 0 de erro
+                                 USB.println("ERROU A DIREÇÃO");
                                  break;    
     }
 
@@ -510,10 +588,34 @@ void loop()
       // limpa a flag
       intFlag &= ~(PLV_INT); 
     }
+
+//    USB.print("Plu: ");
+//    USB.println(weather.readPluviometerCurrent());
+//    USB.print("Total: ");
+//    USB.println(Ctotal);
+//    USB.print("Erro: ");
+//    USB.println(Cerro);
   
-    Payload.addWeatherStation(6, weather.readPluviometerCurrent()); //Cria Payload para pluviometro com Canal 6
-    Payload.addContador(7, Ctotal); //Cria Payload para contador de pacotes totais com Canal 7
-    Payload.addContador(8, Cerro); //Cria Payload para contador de pacotes com erro com Canal 8
+    Payload.addWeatherStation(6,weather.readPluviometerCurrent()); //Cria Payload para pluviometro com Canal 6
+    Payload.addContador(7,Ctotal); //Cria Payload para contador de pacotes totais com Canal 7
+    Payload.addContador(8,Cerro); //Cria Payload para contador de pacotes com erro com Canal 8
+    bat = PWR.getBatteryLevel(),DEC;
+    Payload.addBateria(9, bat); //Cria Payload para bateria com Canal 9
+    solar = PWR.getBatteryCurrent(),DEC;
+    Payload.addBateria(10,solar); //Cria Payload para corrente do painel solar com Canal 10
+    // Part 1: Read the solar radiation sensor 
+    valor = radSensor.readRadiation();  
+    //Conversion from voltage into W/m² - 0.2mV por W/m²
+    radiation = valor / 0.02;
+    USB.println(radiation);
+    Payload.addRadiacao(11, radiation); //Cria Payload para sensor de radiação com Canal 11
+
+//    uint8_t *pld = Payload.getBuffer();
+//
+//    for (unsigned char i = 0; i < Payload.getSize(); i++)
+//   {
+//      USB.print(pld[i], HEX);
+//   }
 
 
       //////////////////////////////////////////////
